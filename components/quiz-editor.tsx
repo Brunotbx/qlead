@@ -29,13 +29,11 @@ import { Button } from "@/components/ui/button"
 import ThemeCustomizer from "@/components/theme-customizer"
 import EmptyState from "@/components/empty-state"
 import SaveQuizModal from "@/components/save-quiz-modal"
-import SavedQuizzesModal from "@/components/saved-quizzes-modal"
 
 export default function QuizEditor() {
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false)
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false)
   const [isThemeCustomizerOpen, setIsThemeCustomizerOpen] = useState(false)
-  const [isSavedQuizzesModalOpen, setIsSavedQuizzesModalOpen] = useState(false)
   const [hasSavedQuizzes, setHasSavedQuizzes] = useState(false)
   const [currentQuizName, setCurrentQuizName] = useState<string | null>(null)
   const {
@@ -242,6 +240,17 @@ export default function QuizEditor() {
                 <h2 className="font-medium text-[#344054] mb-4">Visualização</h2>
               </div>
               <div className="flex flex-col space-y-2 bg-[#f9fafb] p-2 rounded-md mb-4">
+                {/* Opção de Dashboard */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => (window.location.href = "/dashboard")}
+                  className="justify-start text-[#667085]"
+                >
+                  <BarChart2 className="w-4 h-4 mr-2" />
+                  Dashboard
+                </Button>
+
                 {/* Mostrar opções de visualização mobile/desktop apenas se houver questões */}
                 {hasQuestions && (
                   <Button
@@ -272,18 +281,6 @@ export default function QuizEditor() {
                   <Palette className="w-4 h-4 mr-2" />
                   Personalizar
                 </Button>
-                {/* Mostrar o botão de pesquisas salvas se existirem pesquisas */}
-                {hasSavedQuizzes && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setIsSavedQuizzesModalOpen(true)}
-                    className="justify-start text-[#667085]"
-                  >
-                    <BarChart2 className="w-4 h-4 mr-2" />
-                    Pesquisas Salvas
-                  </Button>
-                )}
               </div>
             </div>
           </div>
@@ -321,17 +318,6 @@ export default function QuizEditor() {
           onClose={() => {
             setIsSaveModalOpen(false)
             // Recarregar o nome da pesquisa após salvar
-            loadCurrentQuizName()
-          }}
-        />
-      )}
-      {isSavedQuizzesModalOpen && (
-        <SavedQuizzesModal
-          isOpen={isSavedQuizzesModalOpen}
-          onClose={() => setIsSavedQuizzesModalOpen(false)}
-          onQuizzesSaved={() => {
-            checkForSavedQuizzes()
-            // Recarregar o nome da pesquisa após carregar uma pesquisa salva
             loadCurrentQuizName()
           }}
         />
