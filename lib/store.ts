@@ -86,12 +86,15 @@ export interface SavedQuiz {
   name: string
   description?: string
   createdAt: string
+  updatedAt?: string
   questions: Question[]
   themeColor: string
   customLogo: string | null
   viewMode: "desktop" | "mobile"
   buttonRounded: boolean
-  buttonStyle: "primary" | "secondary" // Add this line
+  buttonStyle: "primary" | "secondary"
+  status?: "published" | "draft"
+  views?: number
 }
 
 // Adicionar o estado para botões arredondados no store

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Info, Copy, QrCode, Calendar, Lock, AlertCircle, Globe } from "lucide-react"
+import { Info, Copy, QrCode, Calendar, Lock, AlertCircle, Globe, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dialog"
 import QRCodeGenerator from "./qr-code-generator"
 import ConfirmationModal from "@/components/confirmation-modal"
+import { useToast } from "@/hooks/use-toast"
 
 interface PublishModalProps {
   quiz: any
@@ -26,6 +27,7 @@ interface PublishModalProps {
 }
 
 export default function PublishModal({ quiz, onClose, onSave }: PublishModalProps) {
+  const { toast } = useToast()
   const [activeTab, setActiveTab] = useState("settings")
   const [customUrl, setCustomUrl] = useState(quiz?.publishedUrl || "")
   const [usePassword, setUsePassword] = useState(!!quiz?.password)
@@ -41,6 +43,34 @@ export default function PublishModal({ quiz, onClose, onSave }: PublishModalProp
   const publicLink = `${baseUrl}/quiz-public?id=${quiz?.id || ""}`
 
   const handleSave = () => {
+    // Validar campos
+    if (usePassword && !password.trim()) {
+      toast({
+        variant: "destructive",
+        title: "Erro de validação",
+        description: "Por favor, defina uma senha para proteger a pesquisa.",
+      })
+      return
+    }
+
+    if (useResponseLimit && (!responseLimit || responseLimit <= 0)) {
+      toast({
+        variant: "destructive",
+        title: "Erro de validação",
+        description: "O limite de respostas deve ser maior que zero.",
+      })
+      return
+    }
+
+    if (useExpiration && !expirationDate) {
+      toast({
+        variant: "destructive",
+        title: "Erro de validação",
+        description: "Por favor, defina uma data de expiração válida.",
+      })
+      return
+    }
+
     if (quiz?.status === "published") {
       setIsConfirmModalOpen(true)
     } else {
@@ -57,6 +87,16 @@ export default function PublishModal({ quiz, onClose, onSave }: PublishModalProp
     }
 
     onSave(quiz.id, settings)
+
+    // Mostrar toast de sucesso
+    toast({
+      variant: "success",
+      title: "Pesquisa publicada",
+      description:
+        quiz.status === "published"
+          ? "As configurações de publicação foram atualizadas com sucesso."
+          : "Sua pesquisa foi publicada com sucesso!",
+    })
   }
 
   const handleCopyLink = () => {
@@ -64,12 +104,79 @@ export default function PublishModal({ quiz, onClose, onSave }: PublishModalProp
       navigator.clipboard
         .writeText(publicLink)
         .then(() => {
-          alert("Link copiado para a área de transferência!")
+          // Substituir o alert por um toast
+          toast({
+            variant: "info",
+            title: "Link copiado",
+            description: "O link da pesquisa foi copiado para a área de transferência.",
+            action: (
+              <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
+                <Check className="h-4 w-4 text-blue-600" />
+              </div>
+            ),
+          })
         })
         .catch((err) => {
           console.error("Erro ao copiar link:", err)
-          alert("Não foi possível copiar o link. Por favor, tente novamente.")
+          toast({
+            variant: "destructive",
+            title: "Erro ao copiar",
+            description: "Não foi possível copiar o link. Por favor, tente novamente.",
+          })
         })
+    }
+  }
+
+  const handleCopyEmbedCode = () => {
+    if (typeof navigator !== "undefined") {
+      navigator.clipboard
+        .writeText(`<iframe src="${publicLink}" width="100%" height="600" frameborder="0"></iframe>`)
+        .then(() => {
+          toast({
+            variant: "info",
+            title: "Código copiado",
+            description: "O código de incorporação foi copiado para a área de transferência.",
+          })
+        })
+        .catch((err) => {
+          console.error("Erro ao copiar código:", err)
+          toast({
+            variant: "destructive",
+            title: "Erro ao copiar",
+            description: "Não foi possível copiar o código. Por favor, tente novamente.",
+          })
+        })
+    }
+  }
+
+  const handleDownloadQRCode = () => {
+    try {
+      const canvas = document.querySelector("canvas")
+      if (canvas) {
+        const link = document.createElement("a")
+        link.download = `qrcode-${quiz.name.replace(/\s+/g, "-").toLowerCase()}.png`
+        link.href = canvas.toDataURL("image/png")
+        link.click()
+
+        toast({
+          variant: "success",
+          title: "QR Code baixado",
+          description: "O QR Code foi baixado com sucesso.",
+        })
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Erro ao baixar",
+          description: "Não foi possível gerar o QR Code. Tente novamente.",
+        })
+      }
+    } catch (error) {
+      console.error("Erro ao baixar QR Code:", error)
+      toast({
+        variant: "destructive",
+        title: "Erro ao baixar",
+        description: "Ocorreu um erro ao baixar o QR Code.",
+      })
     }
   }
 
@@ -256,19 +363,7 @@ export default function PublishModal({ quiz, onClose, onSave }: PublishModalProp
                       {`<iframe src="${publicLink}" width="100%" height="600" frameborder="0"></iframe>`}
                     </code>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="mt-2"
-                    onClick={() => {
-                      if (typeof navigator !== "undefined") {
-                        navigator.clipboard.writeText(
-                          `<iframe src="${publicLink}" width="100%" height="600" frameborder="0"></iframe>`,
-                        )
-                        alert("Código copiado para a área de transferência!")
-                      }
-                    }}
-                  >
+                  <Button variant="outline" size="sm" className="mt-2" onClick={handleCopyEmbedCode}>
                     <Copy className="w-4 h-4 mr-2" />
                     Copiar código
                   </Button>
@@ -291,26 +386,7 @@ export default function PublishModal({ quiz, onClose, onSave }: PublishModalProp
                 </div>
 
                 <div className="mt-6 w-full">
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => {
-                      try {
-                        const canvas = document.querySelector("canvas")
-                        if (canvas) {
-                          const link = document.createElement("a")
-                          link.download = `qrcode-${quiz.name.replace(/\s+/g, "-").toLowerCase()}.png`
-                          link.href = canvas.toDataURL("image/png")
-                          link.click()
-                        } else {
-                          alert("Não foi possível gerar o QR Code. Tente novamente.")
-                        }
-                      } catch (error) {
-                        console.error("Erro ao baixar QR Code:", error)
-                        alert("Ocorreu um erro ao baixar o QR Code.")
-                      }
-                    }}
-                  >
+                  <Button variant="outline" className="w-full" onClick={handleDownloadQRCode}>
                     <QrCode className="w-4 h-4 mr-2" />
                     Baixar QR Code
                   </Button>
